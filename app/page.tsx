@@ -12,7 +12,7 @@ export default function Home() {
     <main className="shell">
       <nav className="nav">
         <a className="brand" href="#"><span className="brand-mark">EI</span><span>EXAM <b>INTELLIGENCE</b></span></a>
-        <div className="nav-links"><a href="#subjects">Subjects</a><a href="#how">How it works</a><a className="login" href="#student">Student login</a></div>
+        <div className="nav-links"><a href="#subjects">Subjects</a><a href="#how">How it works</a><a className="login" href="/auth">Student login / Sign up</a></div>
       </nav>
 
       <section className="hero">
@@ -49,3 +49,4 @@ export default function Home() {
     </main>
   );
 }
+
