@@ -23,7 +23,7 @@ export default function StudentShell({children}:{children:React.ReactNode}){
  const isTest=pathname.startsWith("/tests/")&&pathname.split("/").filter(Boolean).length>1;
  const useShell=!isPublic&&!isAdmin&&!isTest;
  useEffect(()=>{if(!useShell){setReady(true);return;}let active=true;
-  const check=async()=>{if(!supabase){router.replace("/auth");return;}const {data:{user}}=await supabase.auth.getUser();if(!active)return;if(!user){router.replace("/auth");return;}setUserName(user.user_metadata?.full_name||user.email?.split("@")[0]||"Student");setEmail(user.email||"");setReady(true)};
+  const check=async()=>{if(!supabase){router.replace("/auth");return;}const {data:{user}}=await supabase.auth.getUser();if(!active)return;if(!user){router.replace("/auth");return;}const {data:profile}=await supabase.from("profiles").select("full_name").eq("id",user.id).maybeSingle();setUserName(profile?.full_name||user.user_metadata?.full_name||user.email?.split("@")[0]||"Student");setEmail(user.email||"");setReady(true)};
   void check();const authSubscription=supabase?.auth.onAuthStateChange((_event,session)=>{if(!session)router.replace("/");});
   return()=>{active=false;authSubscription?.data.subscription.unsubscribe()};
  },[useShell,router]);
