@@ -46,7 +46,8 @@ export default function TestPage(){
       if(pendingSave.current===task)pendingSave.current=null;
     }
   });
-},[attempt,index,items,remaining]);answerRef.current=answer;
+},[attempt,index,items,remaining]);
+ useEffect(()=>{answerRef.current=answer;},[answer]);
  useEffect(()=>{let live=true;(async()=>{if(!supabase){setError("Test service unavailable");setLoading(false);return;}const {data:{user}}=await supabase.auth.getUser();if(!user){router.replace("/auth");return;}const {data,error}=await supabase.rpc("start_lecture_test",{p_test_id:id});if(!live)return;if(error){setError(error.message);setLoading(false);return;}const rows=(data||[]) as Q[];if(!rows.length){setError("This test has no questions yet.");setLoading(false);return;}setItems(rows);setAttempt(rows[0].attempt_id);setRemaining(rows[0].seconds_per_question||20);setLoading(false);})();return()=>{live=false;};},[id,router]);
  useEffect(()=>{if(loading||result||!items.length)return;const timer=window.setInterval(()=>setRemaining(t=>{if(t<=1){window.clearInterval(timer);void answerRef.current(null);return 0;}return t-1;}),1000);return()=>window.clearInterval(timer);},[loading,result,index,items]);
  if(loading)return <main style={{padding:30}}>Preparing your test…</main>;
