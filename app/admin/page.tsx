@@ -48,9 +48,9 @@ export default function AdminPage() {
       return;
     }
     const ss = (s.data ?? []) as Subject[];
-    setSubjects(ss); setChapters((c.data ?? []) as Chapter[]); setLectures((l.data ?? []) as Lecture[]); setSections((sec.data ?? []) as Section[]); if (!newSectionId && sec.data?.length) setNewSectionId(sec.data[0].id);
+    setSubjects(ss); setChapters((c.data ?? []) as Chapter[]); setLectures((l.data ?? []) as Lecture[]); setSections((sec.data ?? []) as Section[]); setNewSectionId(current => current || sec.data?.[0]?.id || "");
     if (!currentSubjectId && ss.length) setSubjectId(ss[0].id);
-  }, [newSectionId]);
+  }, []);
 
   useEffect(() => {
     let active = true;
