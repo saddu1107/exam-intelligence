@@ -27,6 +27,7 @@ export default function SubjectPage() {
   const [subject, setSubject] = useState<{ id: string; title: string; description: string | null } | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [lectures, setLectures] = useState<Lecture[]>([]);
+  const [noteUrls, setNoteUrls] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -62,7 +63,15 @@ export default function SubjectPage() {
         }
         lectureData = (data ?? []) as Lecture[];
       }
+      const signedNotes: Record<string, string> = {};
+      if (supabase && lectureData.length) {
+        await Promise.all(lectureData.filter(l => l.notes_file_path).map(async l => {
+          const { data } = await supabase!.storage.from("lecture-notes").createSignedUrl(l.notes_file_path!, 3600);
+          if (data?.signedUrl) signedNotes[l.id] = data.signedUrl;
+        }));
+      }
       if (!active) return;
+      setNoteUrls(signedNotes);
       setSubject(subjectData);
       setChapters((chapterData ?? []) as Chapter[]);
       setLectures(lectureData);
@@ -95,7 +104,7 @@ export default function SubjectPage() {
                 return <article key={lecture.id} style={{ borderTop: "1px solid var(--line)", paddingTop: 18, marginTop: 18 }}>
                   <h3>{lecture.title}</h3>
                   {embed ? <div style={{ position: "relative", width: "100%", aspectRatio: "16 / 9", marginTop: 12, overflow: "hidden", borderRadius: 12, background: "#0b1730" }}><iframe src={embed} title={lecture.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }} /></div> : <p className="muted">Video will be available soon.</p>}
-                  {lecture.notes_file_path && <p><span className="muted">Notes file: {lecture.notes_file_path}</span></p>}
+                  {lecture.notes_file_path && noteUrls[lecture.id] && <p><a href={noteUrls[lecture.id]} target="_blank" rel="noreferrer" style={{ color: "#0797b4", fontWeight: 700 }}>Download lecture PDF notes ↗</a></p>}
                   <p className="muted">Lecture test will appear here when published.</p>
                 </article>;
               })}
