@@ -4,7 +4,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
-type Subject = { id: string; title: string; slug: string; description: string | null; published: boolean };
+type Subject = { id: string; title: string; slug: string; description: string | null; published: boolean; section_id?: string | null };\ntype Section = { id: string; title: string; slug: string };
 type Chapter = { id: string; subject_id: string; title: string; sort_order: number };
 type Lecture = { id: string; chapter_id: string; title: string; youtube_unlisted_url: string | null; notes_file_path: string | null; sort_order: number; published: boolean };
 
@@ -18,7 +18,7 @@ export default function AdminPage() {
   const router = useRouter();
   const [checking, setChecking] = useState(true);
   const [allowed, setAllowed] = useState(false);
-  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);\n  const [sections, setSections] = useState<Section[]>([]);\n  const [newSectionId, setNewSectionId] = useState("");
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [subjectId, setSubjectId] = useState("");
@@ -48,9 +48,9 @@ export default function AdminPage() {
       return;
     }
     const ss = (s.data ?? []) as Subject[];
-    setSubjects(ss); setChapters((c.data ?? []) as Chapter[]); setLectures((l.data ?? []) as Lecture[]);
+    setSubjects(ss); setChapters((c.data ?? []) as Chapter[]); setLectures((l.data ?? []) as Lecture[]); setSections((sec.data ?? []) as Section[]); if (!newSectionId && sec.data?.length) setNewSectionId(sec.data[0].id);
     if (!currentSubjectId && ss.length) setSubjectId(ss[0].id);
-  }, []);
+  }, [newSectionId]);
 
   useEffect(() => {
     let active = true;
@@ -78,7 +78,7 @@ export default function AdminPage() {
     e.preventDefault(); if (!supabase || !allowed) return;
     setBusy(true); setMessage("");
     const cleanSlug = slug.toLowerCase().trim().replace(/[^a-z0-9-]+/g, "-").replace(/^-|-$/g, "");
-    const { error } = await supabase.from("subjects").insert({ title: title.trim(), slug: cleanSlug, description: description.trim() || null, published: false });
+    const { error } = await supabase.from("subjects").insert({ title: title.trim(), slug: cleanSlug, description: description.trim() || null, section_id: newSectionId || null, published: false });
     setMessage(error ? "Could not add subject: " + error.message : "Subject added. Publish it when its content is ready.");
     if (!error) { setTitle(""); setSlug(""); setDescription(""); await loadContent(subjectId); }
     setBusy(false);
@@ -183,12 +183,12 @@ export default function AdminPage() {
   return <main className="dashboard-shell" style={{ background: "#f5f8fc", minHeight: "100vh", padding: "28px 18px 60px" }}>
     <div style={{ maxWidth: 980, margin: "0 auto" }}>
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-        <div><div className="eyebrow">EXAM INTELLIGENCE · CONTROL ROOM</div><h1 style={{ color: "#14213d", margin: "8px 0" }}>Admin Content Manager</h1><p style={{ color: "#667085", margin: 0 }}>Build your subject-wise lecture library. Unpublished content stays hidden from students.</p></div>
+        <div><div className="eyebrow">EXAM INTELLIGENCE · CONTROL ROOM</div><h1 style={{ color: "#14213d", margin: "8px 0" }}>Admin Content Manager</h1><p style={{ color: "#667085", margin: 0 }}>Organise sections, subjects, chapters and published lectures. Unpublished content stays hidden from students.</p></div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}><a href="/admin/tests" style={{ ...secondary, textDecoration: "none" }}>Question bank & test studio ↗</a><button style={secondary} onClick={signOut}>Log out</button></div>
       </header>
       {message && <p role="status" style={{ background: "#e9f8fb", color: "#07576a", borderRadius: 10, padding: 12, marginTop: 18 }}>{message}</p>}
-      <section style={panel}><h2 style={{ margin: 0, color: "#14213d" }}>1. Add a subject</h2><form onSubmit={addSubject}>
-        <label style={field}>Subject name<input style={control} value={title} onChange={e => { setTitle(e.target.value); setSlug(e.target.value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")); }} placeholder="Indian Polity" required /></label>
+      <section style={panel}><h2 style={{ margin: 0, color: "#14213d" }}>1. Add a subject inside a section</h2><form onSubmit={addSubject}>
+        <label style={field}>Section<select style={control} value={newSectionId} onChange={e => setNewSectionId(e.target.value)} required>{sections.map(section => <option key={section.id} value={section.id}>{section.title}</option>)}</select></label>\n        <label style={field}>Subject name<input style={control} value={title} onChange={e => { setTitle(e.target.value); setSlug(e.target.value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")); }} placeholder="Indian Polity" required /></label>
         <label style={field}>URL slug<input style={control} value={slug} onChange={e => setSlug(e.target.value)} placeholder="indian-polity" required /></label>
         <label style={field}>Description<input style={control} value={description} onChange={e => setDescription(e.target.value)} placeholder="Short subject description" /></label>
         <button style={primary} disabled={busy}>Add subject</button>
