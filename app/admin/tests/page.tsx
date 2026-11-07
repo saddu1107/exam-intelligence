@@ -44,7 +44,7 @@ export default function AdminTestsPage() {
   const {data,error}=await supabase.rpc("is_admin");
   if(!live)return;
   if(error||data!==true){setMessage("Admin access required");return;}
-  setReady(true);await load(lectureId);
+  setReady(true);await load("");
  })();return()=>{live=false;};},[router,load]);
  async function addQuestion(e:FormEvent){e.preventDefault();if(!supabase||!lectureId)return;if(opts.some(x=>!x.trim())){setMessage("Please fill all four options.");return;}setBusy(true);const {error}=await supabase.from("questions").insert({lecture_id:lectureId,question_text:qtext.trim(),options:opts,correct_option:Number(correct),explanation:explanation.trim()||null});setMessage(error?"Question save failed: "+error.message:"Question added to this lecture.");if(!error){setQtext("");setOpts(["","","",""]);setExplanation("");await load(lectureId);}setBusy(false);}
  async function readCsv(file:File|null){
