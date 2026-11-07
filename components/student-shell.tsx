@@ -1,5 +1,6 @@
 "use client";
 import {useEffect,useState} from "react";
+import type {FormEvent} from "react";
 import Link from "next/link";
 import {usePathname,useRouter} from "next/navigation";
 import {supabase} from "@/lib/supabase";
@@ -23,14 +24,14 @@ export default function StudentShell({children}:{children:React.ReactNode}){
  const useShell=!isPublic&&!isAdmin&&!isTest;
  useEffect(()=>{if(!useShell){setReady(true);return;}let active=true;
   const check=async()=>{if(!supabase){router.replace("/auth");return;}const {data:{user}}=await supabase.auth.getUser();if(!active)return;if(!user){router.replace("/auth");return;}setUserName(user.user_metadata?.full_name||user.email?.split("@")[0]||"Student");setEmail(user.email||"");setReady(true)};
-  void check();const {data:{subscription}}=supabase?.auth.onAuthStateChange((_event,session)=>{if(!session)router.replace("/");});
-  return()=>{active=false;subscription?.unsubscribe()};
+  void check();const authSubscription=supabase?.auth.onAuthStateChange((_event,session)=>{if(!session)router.replace("/");});
+  return()=>{active=false;authSubscription?.data.subscription.unsubscribe()};
  },[useShell,router]);
  useEffect(()=>{setMobileOpen(false);setProfileOpen(false)},[pathname]);
  if(!useShell)return <>{children}</>;
  if(!ready)return <div className="ei-loading"><span className="ei-brand-mark">EI</span><p>Preparing your learning space…</p></div>;
  async function logout(){if(supabase)await supabase.auth.signOut();router.replace("/");}
- function search(e:React.FormEvent){e.preventDefault();const value=query.trim();if(value)router.push("/lectures?search="+encodeURIComponent(value));}
+ function search(e:FormEvent){e.preventDefault();const value=query.trim();if(value)router.push("/lectures?search="+encodeURIComponent(value));}
  const sidebar=<><div className="ei-sidebar-brand"><Link href="/home" className="ei-brand"><span className="ei-brand-mark">EI</span>{!collapsed&&<span>EXAM <b>INTELLIGENCE</b></span>}</Link><button className="ei-collapse" onClick={()=>setCollapsed(v=>!v)} aria-label={collapsed?"Expand sidebar":"Collapse sidebar"}>{collapsed?"»":"«"}</button></div><div className="ei-nav-scroll">{["LEARN","INSIGHTS"].map(group=><div className="ei-nav-group" key={group}><div className="ei-nav-label">{!collapsed&&group}</div>{links.filter(x=>x.group===group).map(item=><Link key={item.href} href={item.href} title={collapsed?item.label:undefined} className={"ei-side-link "+(pathname===item.href||(item.href==="/sections"&&pathname.startsWith("/sections/"))?"active":"")}><Icon>{item.icon}</Icon>{!collapsed&&<span>{item.label}</span>}</Link>)}</div>)}</div><div className="ei-sidebar-bottom"><Link href="/profile" title={collapsed?"My Profile":undefined} className={"ei-side-link "+(pathname==="/profile"?"active":"")}><Icon>◎</Icon>{!collapsed&&<span>My Profile</span>}</Link><Link href="/settings" title={collapsed?"Settings":undefined} className="ei-side-link"><Icon>⚙</Icon>{!collapsed&&<span>Settings</span>}</Link><button onClick={logout} className="ei-side-link ei-logout"><Icon>↪</Icon>{!collapsed&&<span>Log out</span>}</button></div></>;
  return <div className={"ei-app "+(collapsed?"ei-collapsed":"")}>
   {mobileOpen&&<button className="ei-mobile-scrim" onClick={()=>setMobileOpen(false)} aria-label="Close navigation"/>}
