@@ -1,0 +1,108 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+
+type Chapter = { id: string; title: string; sort_order: number };
+type Lecture = { id: string; chapter_id: string; title: string; youtube_unlisted_url: string | null; notes_file_path: string | null; sort_order: number };
+
+function getYouTubeEmbed(url: string | null) {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    let id = "";
+    if (parsed.hostname.includes("youtu.be")) id = parsed.pathname.slice(1);
+    else if (parsed.hostname.includes("youtube.com")) id = parsed.searchParams.get("v") || parsed.pathname.split("/").filter(Boolean).pop() || "";
+    return id ? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}` : null;
+  } catch {
+    return null;
+  }
+}
+
+export default function SubjectPage() {
+  const params = useParams<{ slug: string }>();
+  const slug = params.slug;
+  const [subject, setSubject] = useState<{ id: string; title: string; description: string | null } | null>(null);
+  const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [lectures, setLectures] = useState<Lecture[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    async function loadLibrary() {
+      if (!supabase) {
+        setError("The learning library is temporarily unavailable.");
+        setLoading(false);
+        return;
+      }
+      const { data: subjectData, error: subjectError } = await supabase
+        .from("subjects").select("id,title,description").eq("slug", slug).eq("published", true).maybeSingle();
+      if (subjectError || !subjectData) {
+        if (active) { setError("This subject is not available."); setLoading(false); }
+        return;
+      }
+      const { data: chapterData, error: chapterError } = await supabase
+        .from("chapters").select("id,title,sort_order").eq("subject_id", subjectData.id).order("sort_order");
+      if (chapterError) {
+        if (active) { setError("Could not load chapters. Please refresh."); setLoading(false); }
+        return;
+      }
+      const chapterIds = (chapterData ?? []).map((chapter) => chapter.id);
+      let lectureData: Lecture[] = [];
+      if (chapterIds.length) {
+        const { data, error: lectureError } = await supabase
+          .from("lectures").select("id,chapter_id,title,youtube_unlisted_url,notes_file_path,sort_order")
+          .in("chapter_id", chapterIds).eq("published", true).order("sort_order");
+        if (lectureError) {
+          if (active) { setError("Could not load lectures. Please refresh."); setLoading(false); }
+          return;
+        }
+        lectureData = (data ?? []) as Lecture[];
+      }
+      if (!active) return;
+      setSubject(subjectData);
+      setChapters((chapterData ?? []) as Chapter[]);
+      setLectures(lectureData);
+      setLoading(false);
+    }
+    void loadLibrary();
+    return () => { active = false; };
+  }, [slug]);
+
+  if (loading) return <main className="dashboard-shell"><p>Loading subject…</p></main>;
+  if (error || !subject) return <main className="dashboard-shell"><nav className="nav"><Link className="brand" href="/">EXAM INTELLIGENCE</Link></nav><section className="dashboard-welcome"><h1>Subject unavailable</h1><p>{error || "This subject is not available."}</p><Link className="dashboard-home" href="/">← Back to subjects</Link></section></main>;
+
+  return (
+    <main className="dashboard-shell">
+      <nav className="nav"><Link className="brand" href="/"><span className="brand-mark">EI</span><span>EXAM <b>INTELLIGENCE</b></span></Link><Link className="dashboard-home" href="/">All subjects</Link></nav>
+      <section style={{ padding: "42px 0 20px" }}>
+        <div className="eyebrow">LEARNING LIBRARY</div>
+        <h1 style={{ color: "var(--navy)", fontSize: "clamp(32px,5vw,48px)" }}>{subject.title}</h1>
+        <p className="auth-subtitle">{subject.description || "Choose a chapter and start learning."}</p>
+      </section>
+      {chapters.length === 0 ? <section className="dashboard-welcome"><h2>Chapters coming soon</h2><p>Lessons for this subject are being prepared.</p></section> : (
+        <div style={{ display: "grid", gap: 18, paddingBottom: 60 }}>
+          {chapters.map((chapter) => {
+            const chapterLectures = lectures.filter((lecture) => lecture.chapter_id === chapter.id);
+            return <section className="subject-card" key={chapter.id}>
+              <div className="eyebrow">CHAPTER {chapter.sort_order || ""}</div>
+              <h2>{chapter.title}</h2>
+              {chapterLectures.length === 0 ? <p className="muted">Lectures coming soon.</p> : chapterLectures.map((lecture) => {
+                const embed = getYouTubeEmbed(lecture.youtube_unlisted_url);
+                return <article key={lecture.id} style={{ borderTop: "1px solid var(--line)", paddingTop: 18, marginTop: 18 }}>
+                  <h3>{lecture.title}</h3>
+                  {embed ? <div style={{ position: "relative", width: "100%", aspectRatio: "16 / 9", marginTop: 12, overflow: "hidden", borderRadius: 12, background: "#0b1730" }}><iframe src={embed} title={lecture.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }} /></div> : <p className="muted">Video will be available soon.</p>}
+                  {lecture.notes_file_path && <p><span className="muted">Notes file: {lecture.notes_file_path}</span></p>}
+                  <p className="muted">Lecture test will appear here when published.</p>
+                </article>;
+              })}
+            </section>;
+          })}
+        </div>
+      )}
+    </main>
+  );
+}
