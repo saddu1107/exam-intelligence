@@ -44,7 +44,8 @@ export default function AdminPage() {
     const [s, c, l, sec] = await Promise.all([
       supabase.from("subjects").select("id,title,slug,description,published,section_id").order("created_at", { ascending: false }),
       supabase.from("chapters").select("id,subject_id,title,sort_order").order("sort_order"),
-      supabase.from("lectures").select("id,chapter_id,title,youtube_unlisted_url,notes_file_path,sort_order,published").order("sort_order"),\n      supabase.from("sections").select("id,title,slug").order("sort_order"),
+      supabase.from("lectures").select("id,chapter_id,title,youtube_unlisted_url,notes_file_path,sort_order,published").order("sort_order"),
+      supabase.from("sections").select("id,title,slug").order("sort_order"),
     ]);
     if (s.error || c.error || l.error || sec.error) {
       setMessage("Could not load content: " + (s.error?.message || c.error?.message || l.error?.message || sec.error?.message));
