@@ -8,6 +8,7 @@ import {supabase} from "@/lib/supabase";
 const links=[
  {href:"/home",label:"Home",icon:"⌂",group:"LEARN"},
  {href:"/sections",label:"All Sections",icon:"▦",group:"LEARN"},
+ {href:"/exams",label:"SSC Exam Centre",icon:"◎",group:"LEARN"},
  {href:"/lectures",label:"Video Lectures",icon:"▷",group:"LEARN"},
  {href:"/tests",label:"Test Library",icon:"▤",group:"LEARN"},
  {href:"/dashboard",label:"My Performance",icon:"▥",group:"INSIGHTS"},
