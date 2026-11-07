@@ -32,6 +32,7 @@ export default function SubjectPage() {
   const [noteUrls, setNoteUrls] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [expandedChapter, setExpandedChapter] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -79,6 +80,8 @@ export default function SubjectPage() {
       }
       if (!active) return;
       setNoteUrls(signedNotes);
+      setTests(testData);
+      setExpandedChapter((chapterData ?? []).find(chapter => lectureData.some(lecture => lecture.chapter_id === chapter.id))?.id ?? null);
       setSubject(subjectData);
       setChapters((chapterData ?? []) as Chapter[]);
       setLectures(lectureData);
@@ -103,19 +106,27 @@ export default function SubjectPage() {
         <div style={{ display: "grid", gap: 18, paddingBottom: 60 }}>
           {chapters.map((chapter) => {
             const chapterLectures = lectures.filter((lecture) => lecture.chapter_id === chapter.id);
-            return <section className="subject-card" key={chapter.id}>
-              <div className="eyebrow">CHAPTER {chapter.sort_order || ""}</div>
-              <h2>{chapter.title}</h2>
-              {chapterLectures.length === 0 ? <p className="muted">Lectures coming soon.</p> : chapterLectures.map((lecture) => {
+            const isExpanded = expandedChapter === chapter.id;
+            return <section className="subject-card" key={chapter.id} style={{ cursor: "pointer" }}>
+              <button type="button" onClick={() => setExpandedChapter(isExpanded ? null : chapter.id)} aria-expanded={isExpanded} style={{ display: "block", width: "100%", textAlign: "left", border: 0, padding: 0, background: "transparent", color: "inherit", cursor: "pointer" }}>
+                <div className="eyebrow">CHAPTER {chapter.sort_order || ""}</div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                  <h2 style={{ marginBottom: 0 }}>{chapter.title}</h2>
+                  <span aria-hidden="true" style={{ color: "#0797b4", fontSize: 24 }}>{isExpanded ? "−" : "+"}</span>
+                </div>
+                <p className="muted" style={{ marginBottom: 0 }}>{chapterLectures.length ? `${chapterLectures.length} published lecture(s)` : "No published lectures yet"}</p>
+              </button>
+              {isExpanded && (chapterLectures.length === 0 ? <p className="muted" style={{ marginTop: 18 }}>This chapter is being prepared. Its lectures and tests will appear here once published.</p> : chapterLectures.map((lecture) => {
                 const embed = getYouTubeEmbed(lecture.youtube_unlisted_url);
+                const lectureTests = tests.filter(t => t.lecture_id === lecture.id);
                 return <article key={lecture.id} style={{ borderTop: "1px solid var(--line)", paddingTop: 18, marginTop: 18 }}>
                   <h3>{lecture.title}</h3>
                   {embed ? <div style={{ position: "relative", width: "100%", aspectRatio: "16 / 9", marginTop: 12, overflow: "hidden", borderRadius: 12, background: "#0b1730" }}><iframe src={embed} title={lecture.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }} /></div> : <p className="muted">Video will be available soon.</p>}
                   {lecture.notes_file_path && noteUrls[lecture.id] && <p><a href={noteUrls[lecture.id]} target="_blank" rel="noreferrer" style={{ color: "#0797b4", fontWeight: 700 }}>Download lecture PDF notes ↗</a></p>}
-                  {tests.filter(t => t.lecture_id === lecture.id).map(test => <p key={test.id}><Link href={`/tests/${test.id}`} className="dashboard-home">Start {test.title} ({test.question_count} questions) →</Link></p>)}
-                  {!tests.some(t => t.lecture_id === lecture.id) && <p className="muted">Lecture test will appear here when published.</p>}
+                  {lectureTests.map(test => <p key={test.id}><Link href={`/tests/${test.id}`} className="dashboard-home">Start {test.title} ({test.question_count} questions) →</Link></p>)}
+                  {!lectureTests.length && <p className="muted">Lecture test will appear here when published.</p>}
                 </article>;
-              })}
+              }))}
             </section>;
           })}
         </div>
