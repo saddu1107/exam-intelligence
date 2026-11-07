@@ -1,14 +1,14 @@
 "use client";
 import { FormEvent,useEffect,useState } from "react";
 import Link from "next/link";
-import { useRouter,useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 export default function AuthPage(){
  const router=useRouter();const params=useSearchParams();
  const [mode,setMode]=useState<"login"|"signup">(params.get("mode")==="signup"?"signup":"login");
  const [name,setName]=useState("");const [email,setEmail]=useState("");const [password,setPassword]=useState("");
  const [visible,setVisible]=useState(false);const [message,setMessage]=useState("");const [busy,setBusy]=useState(false);
- useEffect(()=>{let live=true;(async()=>{if(!supabase)return;const {data:{session}}=await supabase.auth.getSession();if(live&&session)router.replace("/home");})();return()=>{live=false}},[router]);
+ useEffect(()=>{let live=true;if(new URLSearchParams(window.location.search).get("mode")==="signup")setMode("signup");(async()=>{if(!supabase)return;const {data:{session}}=await supabase.auth.getSession();if(live&&session)router.replace("/home");})();return()=>{live=false}},[router]);
  async function submit(e:FormEvent){e.preventDefault();setMessage("");if(!supabase){setMessage("Authentication is unavailable. Please try again later.");return;}if(password.length<8){setMessage("Password must contain at least 8 characters.");return;}setBusy(true);
  try{if(mode==="signup"){const {data,error}=await supabase.auth.signUp({email:email.trim(),password,options:{data:{full_name:name.trim()},emailRedirectTo:location.origin+"/home"}});if(error)throw error;if(data.session)router.replace("/home");else setMessage("Account created. Check your email to confirm your account, then log in.");}
  else{const {error}=await supabase.auth.signInWithPassword({email:email.trim(),password});if(error)throw error;router.replace("/home");}}
