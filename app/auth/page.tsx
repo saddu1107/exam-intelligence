@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 export default function AuthPage(){
- const router=useRouter();const params=useSearchParams();
- const [mode,setMode]=useState<"login"|"signup">(params.get("mode")==="signup"?"signup":"login");
+ const router=useRouter();
+ const [mode,setMode]=useState<"login"|"signup">("login");
  const [name,setName]=useState("");const [email,setEmail]=useState("");const [password,setPassword]=useState("");
  const [visible,setVisible]=useState(false);const [message,setMessage]=useState("");const [busy,setBusy]=useState(false);
  useEffect(()=>{let live=true;if(new URLSearchParams(window.location.search).get("mode")==="signup")setMode("signup");(async()=>{if(!supabase)return;const {data:{session}}=await supabase.auth.getSession();if(live&&session)router.replace("/home");})();return()=>{live=false}},[router]);
