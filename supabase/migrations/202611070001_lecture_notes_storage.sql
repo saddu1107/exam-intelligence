@@ -1,0 +1,3 @@
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types) values ('lecture-notes','lecture-notes',false,20971520,array['application/pdf']) on conflict (id) do nothing;
+create policy "Admins manage lecture notes" on storage.objects for all to authenticated using (bucket_id = 'lecture-notes' and public.is_admin()) with check (bucket_id = 'lecture-notes' and public.is_admin());
+create policy "Students read published lecture notes" on storage.objects for select to authenticated using (bucket_id = 'lecture-notes' and exists (select 1 from public.lectures l join public.chapters c on c.id = l.chapter_id join public.subjects s on s.id = c.subject_id where l.id::text = (storage.foldername(name))[1] and l.published = true and s.published = true));
