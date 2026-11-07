@@ -29,7 +29,7 @@ export default function AdminTestsPage() {
  async function readCsv(file:File|null){
   setCsvRows([]);setCsvName("");if(!file)return;
   const raw=parseCsv(await file.text());if(raw.length<2){setMessage("CSV must include a header and at least one question.");return;}
-  const headers=raw[0].map(x=>x.toLowerCase().replace(/^\\ufeff/,"").trim());
+  const headers=raw[0].map(x=>x.toLowerCase().replace(/^\ufeff/,"").trim());
   const required=["question","option_a","option_b","option_c","option_d","correct_option"];
   const missing=required.filter(h=>!headers.includes(h));if(missing.length){setMessage("Missing CSV columns: "+missing.join(", "));return;}
   const rows=raw.slice(1).map((cells,i)=>{const get=(key:string)=>cells[headers.indexOf(key)]||"";const answer=get("correct_option").toUpperCase();const correctIndex=["A","B","C","D"].indexOf(answer)>=0?["A","B","C","D"].indexOf(answer):Number(answer)>=1&&Number(answer)<=4?Number(answer)-1:Number(answer);return {row:i+2,question_text:get("question"),options:[get("option_a"),get("option_b"),get("option_c"),get("option_d")],correct_option:correctIndex,explanation:get("explanation")||null};});
