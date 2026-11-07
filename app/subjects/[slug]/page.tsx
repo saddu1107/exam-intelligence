@@ -28,7 +28,8 @@ export default function SubjectPage() {
   const [subject, setSubject] = useState<{ id: string; title: string; description: string | null } | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [lectures, setLectures] = useState<Lecture[]>([]);
-  const [tests, setTests] = useState<Test[]>([]);\n  const [lectureTestMap, setLectureTestMap] = useState<Record<string,string[]>>({});
+  const [tests, setTests] = useState<Test[]>([]);
+  const [lectureTestMap, setLectureTestMap] = useState<Record<string,string[]>>({});
   const [noteUrls, setNoteUrls] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -69,7 +70,8 @@ export default function SubjectPage() {
       let testData: Test[] = [];
       if (lectureData.length) {
         const { data } = await supabase.from("lecture_tests").select("test_id,tests(id,title,question_count)").in("lecture_id", lectureData.map(l => l.id));
-        testData = (data ?? []).map((row: any) => row.tests).filter(Boolean) as Test[];\n        const map: Record<string,string[]> = {}; (data ?? []).forEach((row: any) => { if (row.tests?.id) map[row.lecture_id] = [...(map[row.lecture_id] || []), row.tests.id]; }); setLectureTestMap(map);
+        testData = (data ?? []).map((row: any) => row.tests).filter(Boolean) as Test[];
+        const map: Record<string,string[]> = {}; (data ?? []).forEach((row: any) => { if (row.tests?.id) map[row.lecture_id] = [...(map[row.lecture_id] || []), row.tests.id]; }); setLectureTestMap(map);
       }
       const signedNotes: Record<string, string> = {};
       if (supabase && lectureData.length) {
