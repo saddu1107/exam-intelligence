@@ -132,7 +132,7 @@ export default function AdminPage() {
     <div style={{ maxWidth: 980, margin: "0 auto" }}>
       <header style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
         <div><div className="eyebrow">EXAM INTELLIGENCE · CONTROL ROOM</div><h1 style={{ color: "#14213d", margin: "8px 0" }}>Admin Content Manager</h1><p style={{ color: "#667085", margin: 0 }}>Build your subject-wise lecture library. Unpublished content stays hidden from students.</p></div>
-        <button style={secondary} onClick={signOut}>Log out</button>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}><a href="/admin/tests" style={{ ...secondary, textDecoration: "none" }}>Question bank & test studio ↗</a><button style={secondary} onClick={signOut}>Log out</button></div>
       </header>
       {message && <p role="status" style={{ background: "#e9f8fb", color: "#07576a", borderRadius: 10, padding: 12, marginTop: 18 }}>{message}</p>}
       <section style={panel}><h2 style={{ margin: 0, color: "#14213d" }}>1. Add a subject</h2><form onSubmit={addSubject}>
