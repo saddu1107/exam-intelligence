@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 
 type Chapter = { id: string; title: string; sort_order: number };
 type Lecture = { id: string; chapter_id: string; title: string; youtube_unlisted_url: string | null; notes_file_path: string | null; sort_order: number };
-type Test = { id: string; lecture_id: string; title: string; question_count: number };
+type Test = { id: string; title: string; question_count: number };
 
 function getYouTubeEmbed(url: string | null) {
   if (!url) return null;
@@ -28,7 +28,7 @@ export default function SubjectPage() {
   const [subject, setSubject] = useState<{ id: string; title: string; description: string | null } | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [lectures, setLectures] = useState<Lecture[]>([]);
-  const [tests, setTests] = useState<Test[]>([]);
+  const [tests, setTests] = useState<Test[]>([]);\n  const [lectureTestMap, setLectureTestMap] = useState<Record<string,string[]>>({});
   const [noteUrls, setNoteUrls] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -68,8 +68,8 @@ export default function SubjectPage() {
       }
       let testData: Test[] = [];
       if (lectureData.length) {
-        const { data } = await supabase.from("tests").select("id,lecture_id,title,question_count").in("lecture_id", lectureData.map(l => l.id)).eq("published", true);
-        testData = (data ?? []) as Test[];
+        const { data } = await supabase.from("lecture_tests").select("test_id,tests(id,title,question_count)").in("lecture_id", lectureData.map(l => l.id));
+        testData = (data ?? []).map((row: any) => row.tests).filter(Boolean) as Test[];\n        const map: Record<string,string[]> = {}; (data ?? []).forEach((row: any) => { if (row.tests?.id) map[row.lecture_id] = [...(map[row.lecture_id] || []), row.tests.id]; }); setLectureTestMap(map);
       }
       const signedNotes: Record<string, string> = {};
       if (supabase && lectureData.length) {
@@ -92,11 +92,11 @@ export default function SubjectPage() {
   }, [slug]);
 
   if (loading) return <main className="dashboard-shell"><p>Loading subject…</p></main>;
-  if (error || !subject) return <main className="dashboard-shell"><nav className="nav"><Link className="brand" href="/">EXAM INTELLIGENCE</Link></nav><section className="dashboard-welcome"><h1>Subject unavailable</h1><p>{error || "This subject is not available."}</p><Link className="dashboard-home" href="/">← Back to subjects</Link></section></main>;
+  if (error || !subject) return <main className="dashboard-shell"><nav className="nav"><Link className="brand" href="/home">EXAM INTELLIGENCE</Link></nav><section className="dashboard-welcome"><h1>Subject unavailable</h1><p>{error || "This subject is not available."}</p><Link className="dashboard-home" href="/home">← Student home</Link></section></main>;
 
   return (
     <main className="dashboard-shell">
-      <nav className="nav"><Link className="brand" href="/"><span className="brand-mark">EI</span><span>EXAM <b>INTELLIGENCE</b></span></Link><Link className="dashboard-home" href="/">All subjects</Link></nav>
+      <nav className="nav"><Link className="brand" href="/"><span className="brand-mark">EI</span><span>EXAM <b>INTELLIGENCE</b></span></Link><Link className="dashboard-home" href="/home">Student home</Link></nav>
       <section style={{ padding: "42px 0 20px" }}>
         <div className="eyebrow">LEARNING LIBRARY</div>
         <h1 style={{ color: "var(--navy)", fontSize: "clamp(32px,5vw,48px)" }}>{subject.title}</h1>
@@ -118,7 +118,7 @@ export default function SubjectPage() {
               </button>
               {isExpanded && (chapterLectures.length === 0 ? <p className="muted" style={{ marginTop: 18 }}>This chapter is being prepared. Its lectures and tests will appear here once published.</p> : chapterLectures.map((lecture) => {
                 const embed = getYouTubeEmbed(lecture.youtube_unlisted_url);
-                const lectureTests = tests.filter(t => t.lecture_id === lecture.id);
+                const lectureTests = tests.filter(t => (lectureTestMap[lecture.id] || []).includes(t.id));
                 return <article key={lecture.id} style={{ borderTop: "1px solid var(--line)", paddingTop: 18, marginTop: 18 }}>
                   <h3>{lecture.title}</h3>
                   {embed ? <div style={{ position: "relative", width: "100%", aspectRatio: "16 / 9", marginTop: 12, overflow: "hidden", borderRadius: 12, background: "#0b1730" }}><iframe src={embed} title={lecture.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }} /></div> : <p className="muted">Video will be available soon.</p>}
