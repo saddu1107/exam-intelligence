@@ -160,6 +160,20 @@ export default function AdminPage() {
     if (!supabase || !window.confirm("Delete this lecture and its tests? This cannot be undone.")) return;
     setBusy(true); const { error } = await supabase.from("lectures").delete().eq("id", lecture.id); setMessage(error ? error.message : "Lecture deleted."); if (!error) await loadContent(); setBusy(false);
   }
+  async function editSubject(subject: Subject) {
+    if (!supabase) return;
+    const nextTitle = window.prompt("Subject name", subject.title); if (nextTitle === null || !nextTitle.trim()) return;
+    const nextSlug = window.prompt("URL slug", subject.slug); if (nextSlug === null || !nextSlug.trim()) return;
+    const nextDescription = window.prompt("Description", subject.description || ""); if (nextDescription === null) return;
+    const cleanSlug = nextSlug.toLowerCase().trim().replace(/[^a-z0-9-]+/g, "-").replace(/^-|-$/g, "");
+    setBusy(true); const { error } = await supabase.from("subjects").update({ title: nextTitle.trim(), slug: cleanSlug, description: nextDescription.trim() || null }).eq("id", subject.id);
+    setMessage(error ? "Could not update subject: " + error.message : "Subject updated."); if (!error) await loadContent(); setBusy(false);
+  }
+  async function deleteSubject(subject: Subject) {
+    if (!supabase || !window.confirm("Delete this subject and all its chapters, lectures and tests? This cannot be undone.")) return;
+    setBusy(true); const { error } = await supabase.from("subjects").delete().eq("id", subject.id);
+    setMessage(error ? "Could not delete subject: " + error.message : "Subject deleted."); if (!error) { if (subjectId === subject.id) setSubjectId(""); await loadContent(); } setBusy(false);
+  }
   async function signOut() { if (supabase) await supabase.auth.signOut(); router.replace("/auth"); }
 
   if (checking) return <main className="auth-shell"><section className="auth-card"><p>Checking admin access…</p></section></main>;
@@ -195,7 +209,7 @@ export default function AdminPage() {
       </form></section>
       <section style={panel}><h2 style={{ margin: 0, color: "#14213d" }}>4. Publish content</h2><p style={{ color: "#667085" }}>Review your content and publish it when it is ready for students.</p>
         <h3 style={{ color: "#14213d" }}>Subjects</h3>
-        {subjects.map(s => <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, borderTop: "1px solid #edf0f5", padding: "12px 0" }}><div><b>{s.title}</b><div style={{ color: "#667085", fontSize: 13 }}>{s.slug} · {chapters.filter(c => c.subject_id === s.id).length} chapters · {s.published ? "Published" : "Draft"}</div></div><button style={secondary} onClick={() => void toggle("subjects", s)}>{s.published ? "Unpublish" : "Publish"}</button></div>)}
+        {subjects.map(s => <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, borderTop: "1px solid #edf0f5", padding: "12px 0", flexWrap: "wrap" }}><div><b>{s.title}</b><div style={{ color: "#667085", fontSize: 13 }}>{s.slug} · {chapters.filter(c => c.subject_id === s.id).length} chapters · {s.published ? "Published" : "Draft"}</div></div><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><button style={secondary} onClick={() => void toggle("subjects", s)}>{s.published ? "Unpublish" : "Publish"}</button><button style={secondary} disabled={busy} onClick={() => void editSubject(s)}>Edit</button><button style={secondary} disabled={busy} onClick={() => void deleteSubject(s)}>Delete</button></div></div>)}
         <h3 style={{ color: "#14213d", marginTop: 22 }}>Lectures in {subjects.find(s => s.id === subjectId)?.title || "selected subject"}</h3>
         {selectedLectures.length === 0 ? <p style={{ color: "#667085" }}>No lectures added yet.</p> : selectedLectures.map(l => <div key={l.id} style={{ borderTop: "1px solid #edf0f5", padding: "14px 0" }}><div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}><div><b>{l.title}</b><div style={{ color: "#667085", fontSize: 13 }}>{chapters.find(c => c.id === l.chapter_id)?.title} · {l.notes_file_path ? "PDF attached" : "No PDF"} · {l.published ? "Published" : "Draft"}</div></div><div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}><button style={secondary} onClick={() => void toggle("lectures", l)}>{l.published ? "Unpublish" : "Publish"}</button><button style={secondary} disabled={busy} onClick={() => void editLecture(l)}>Edit</button><label style={{ ...secondary, display: "inline-flex", alignItems: "center", cursor: "pointer" }}>Replace PDF<input type="file" accept="application/pdf,.pdf" hidden onChange={e => { void replaceLecturePdf(l, e.target.files?.[0] ?? null); e.currentTarget.value = ""; }} /></label><button style={secondary} disabled={busy} onClick={() => void deleteLecture(l)}>Delete</button></div></div></div>)}
       </section>
