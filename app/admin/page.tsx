@@ -4,7 +4,8 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
-type Subject = { id: string; title: string; slug: string; description: string | null; published: boolean; section_id?: string | null };\ntype Section = { id: string; title: string; slug: string };
+type Subject = { id: string; title: string; slug: string; description: string | null; published: boolean; section_id?: string | null };
+type Section = { id: string; title: string; slug: string };
 type Chapter = { id: string; subject_id: string; title: string; sort_order: number };
 type Lecture = { id: string; chapter_id: string; title: string; youtube_unlisted_url: string | null; notes_file_path: string | null; sort_order: number; published: boolean };
 
@@ -18,7 +19,9 @@ export default function AdminPage() {
   const router = useRouter();
   const [checking, setChecking] = useState(true);
   const [allowed, setAllowed] = useState(false);
-  const [subjects, setSubjects] = useState<Subject[]>([]);\n  const [sections, setSections] = useState<Section[]>([]);\n  const [newSectionId, setNewSectionId] = useState("");
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [sections, setSections] = useState<Section[]>([]);
+  const [newSectionId, setNewSectionId] = useState("");
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [lectures, setLectures] = useState<Lecture[]>([]);
   const [subjectId, setSubjectId] = useState("");
@@ -188,7 +191,8 @@ export default function AdminPage() {
       </header>
       {message && <p role="status" style={{ background: "#e9f8fb", color: "#07576a", borderRadius: 10, padding: 12, marginTop: 18 }}>{message}</p>}
       <section style={panel}><h2 style={{ margin: 0, color: "#14213d" }}>1. Add a subject inside a section</h2><form onSubmit={addSubject}>
-        <label style={field}>Section<select style={control} value={newSectionId} onChange={e => setNewSectionId(e.target.value)} required>{sections.map(section => <option key={section.id} value={section.id}>{section.title}</option>)}</select></label>\n        <label style={field}>Subject name<input style={control} value={title} onChange={e => { setTitle(e.target.value); setSlug(e.target.value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")); }} placeholder="Indian Polity" required /></label>
+        <label style={field}>Section<select style={control} value={newSectionId} onChange={e => setNewSectionId(e.target.value)} required>{sections.map(section => <option key={section.id} value={section.id}>{section.title}</option>)}</select></label>
+        <label style={field}>Subject name<input style={control} value={title} onChange={e => { setTitle(e.target.value); setSlug(e.target.value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")); }} placeholder="Indian Polity" required /></label>
         <label style={field}>URL slug<input style={control} value={slug} onChange={e => setSlug(e.target.value)} placeholder="indian-polity" required /></label>
         <label style={field}>Description<input style={control} value={description} onChange={e => setDescription(e.target.value)} placeholder="Short subject description" /></label>
         <button style={primary} disabled={busy}>Add subject</button>
