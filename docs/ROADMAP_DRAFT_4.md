@@ -29,15 +29,15 @@
 - [ ] Review destructive actions and add safer archive/confirmation flows where needed.
 
 ### P1 — Exam and content foundation
-- [ ] Define canonical exam, subject, chapter and topic identifiers.
-- [ ] Design additive migrations for `exams`, `exam_syllabus`, `question_translations`, `question_tags`, `bookmarks`, `student_progress`, `study_plans` and `question_reports`.
+- [x] Define canonical exam identifiers and link syllabus items to existing subjects/chapters.
+- [x] Additive Phase 5 migration for `exams`, `exam_syllabus`, `student_exam_selections` and `student_syllabus_progress`; remaining Phase 6 tables stay queued.
 - [ ] Preserve existing subjects, chapters, questions, tests, attempts and responses.
 - [ ] Add verified-source metadata and distinguish PYQs from original practice questions.
 - [ ] Add admin filters and bulk import validation for exam/year/topic/language.
 
 ### P2 — Student experience
 - [ ] Smart dashboard.
-- [ ] Seven-exam SSC Centre and syllabus progress.
+- [x] Seven-exam SSC Centre catalogue, target exam selection/date and syllabus progress UI (syllabus topics remain unpublished until verified).
 - [ ] Bilingual question bank and search.
 - [ ] Sectional test engine and detailed analytics.
 - [ ] Bookmarks, incorrect-question revision and question reporting.
