@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
@@ -36,7 +36,7 @@ export default function AdminPage() {
   const [busy, setBusy] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  async function loadContent() {
+  const loadContent = useCallback(async (currentSubjectId: string) => {
     if (!supabase) return;
     const [s, c, l] = await Promise.all([
       supabase.from("subjects").select("id,title,slug,description,published").order("created_at", { ascending: false }),
@@ -49,8 +49,8 @@ export default function AdminPage() {
     }
     const ss = (s.data ?? []) as Subject[];
     setSubjects(ss); setChapters((c.data ?? []) as Chapter[]); setLectures((l.data ?? []) as Lecture[]);
-    if (!subjectId && ss.length) setSubjectId(ss[0].id);
-  }
+    if (!currentSubjectId && ss.length) setSubjectId(ss[0].id);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -65,11 +65,11 @@ export default function AdminPage() {
         setMessage(adminError?.message || "This account does not have admin access. Ask the project owner to assign the admin role.");
         setChecking(false); return;
       }
-      setAllowed(true); setChecking(false); await loadContent();
+      setAllowed(true); setChecking(false); await loadContent("");
     }
     void checkAdmin();
     return () => { active = false; };
-  }, [router]);
+  }, [router, loadContent]);
 
   const selectedChapters = chapters.filter(c => c.subject_id === subjectId);
   const selectedLectures = lectures.filter(l => selectedChapters.some(c => c.id === l.chapter_id));
@@ -80,7 +80,7 @@ export default function AdminPage() {
     const cleanSlug = slug.toLowerCase().trim().replace(/[^a-z0-9-]+/g, "-").replace(/^-|-$/g, "");
     const { error } = await supabase.from("subjects").insert({ title: title.trim(), slug: cleanSlug, description: description.trim() || null, published: false });
     setMessage(error ? "Could not add subject: " + error.message : "Subject added. Publish it when its content is ready.");
-    if (!error) { setTitle(""); setSlug(""); setDescription(""); await loadContent(); }
+    if (!error) { setTitle(""); setSlug(""); setDescription(""); await loadContent(subjectId); }
     setBusy(false);
   }
 
@@ -89,7 +89,7 @@ export default function AdminPage() {
     setBusy(true);
     const { error } = await supabase.from("chapters").insert({ subject_id: subjectId, title: chapterTitle.trim(), sort_order: Number(chapterOrder) || 1 });
     setMessage(error ? "Could not add chapter: " + error.message : "Chapter added.");
-    if (!error) { setChapterTitle(""); await loadContent(); }
+    if (!error) { setChapterTitle(""); await loadContent(subjectId); }
     setBusy(false);
   }
 
@@ -114,14 +114,14 @@ export default function AdminPage() {
     } else setMessage("Lecture added. Publish it when ready.");
     setLectureTitle(""); setYoutubeUrl(""); setPdf(null);
     const fileInput = document.getElementById("lecture-pdf") as HTMLInputElement | null; if (fileInput) fileInput.value = "";
-    await loadContent(); setBusy(false);
+    await loadContent(subjectId); setBusy(false);
   }
 
   async function toggle(table: "subjects" | "lectures", item: Subject | Lecture) {
     if (!supabase) return;
     const { error } = await supabase.from(table).update({ published: !item.published }).eq("id", item.id);
     setMessage(error ? "Could not update publish status: " + error.message : (item.published ? "Content unpublished." : "Content published."));
-    if (!error) await loadContent();
+    if (!error) await loadContent(subjectId);
   }
 
   async function editChapter(chapter: Chapter) {
@@ -133,14 +133,14 @@ export default function AdminPage() {
     setBusy(true);
     const { error } = await supabase.from("chapters").update({ title: nextTitle.trim(), sort_order: Number(nextOrder) || chapter.sort_order }).eq("id", chapter.id);
     setMessage(error ? "Could not update chapter: " + error.message : "Chapter updated.");
-    if (!error) await loadContent();
+    if (!error) await loadContent(subjectId);
     setBusy(false);
   }
   async function deleteChapter(chapter: Chapter) {
     if (!supabase || !window.confirm("Delete this chapter and all lectures/tests under it? This cannot be undone.")) return;
     setBusy(true); const { error } = await supabase.from("chapters").delete().eq("id", chapter.id);
     setMessage(error ? "Could not delete chapter: " + error.message : "Chapter deleted.");
-    if (!error) await loadContent(); setBusy(false);
+    if (!error) await loadContent(subjectId); setBusy(false);
   }
   async function editLecture(lecture: Lecture) {
     if (!supabase) return;
@@ -148,18 +148,18 @@ export default function AdminPage() {
     const nextUrl = window.prompt("YouTube URL (blank removes it)", lecture.youtube_unlisted_url || ""); if (nextUrl === null) return;
     const nextOrder = window.prompt("Display order", String(lecture.sort_order)); if (nextOrder === null) return;
     setBusy(true); const { error } = await supabase.from("lectures").update({ title: nextTitle.trim(), youtube_unlisted_url: nextUrl.trim() || null, sort_order: Number(nextOrder) || lecture.sort_order }).eq("id", lecture.id);
-    setMessage(error ? "Could not update lecture: " + error.message : "Lecture updated."); if (!error) await loadContent(); setBusy(false);
+    setMessage(error ? "Could not update lecture: " + error.message : "Lecture updated."); if (!error) await loadContent(subjectId); setBusy(false);
   }
   async function replaceLecturePdf(lecture: Lecture, file: File | null) {
     if (!supabase || !file) return; if (file.type !== "application/pdf" || file.size > 20 * 1024 * 1024) { setMessage("Choose a PDF up to 20 MB."); return; }
     setBusy(true); const path = lecture.id + "/" + Date.now() + "-" + file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
     const { error: uploadError } = await supabase.storage.from("lecture-notes").upload(path, file, { contentType: "application/pdf", upsert: false });
-    if (uploadError) setMessage("PDF upload failed: " + uploadError.message); else { const { error } = await supabase.from("lectures").update({ notes_file_path: path }).eq("id", lecture.id); setMessage(error ? error.message : "Lecture PDF replaced successfully."); if (!error) await loadContent(); }
+    if (uploadError) setMessage("PDF upload failed: " + uploadError.message); else { const { error } = await supabase.from("lectures").update({ notes_file_path: path }).eq("id", lecture.id); setMessage(error ? error.message : "Lecture PDF replaced successfully."); if (!error) await loadContent(subjectId); }
     setBusy(false);
   }
   async function deleteLecture(lecture: Lecture) {
     if (!supabase || !window.confirm("Delete this lecture and its tests? This cannot be undone.")) return;
-    setBusy(true); const { error } = await supabase.from("lectures").delete().eq("id", lecture.id); setMessage(error ? error.message : "Lecture deleted."); if (!error) await loadContent(); setBusy(false);
+    setBusy(true); const { error } = await supabase.from("lectures").delete().eq("id", lecture.id); setMessage(error ? error.message : "Lecture deleted."); if (!error) await loadContent(subjectId); setBusy(false);
   }
   async function editSubject(subject: Subject) {
     if (!supabase) return;
@@ -168,12 +168,12 @@ export default function AdminPage() {
     const nextDescription = window.prompt("Description", subject.description || ""); if (nextDescription === null) return;
     const cleanSlug = nextSlug.toLowerCase().trim().replace(/[^a-z0-9-]+/g, "-").replace(/^-|-$/g, "");
     setBusy(true); const { error } = await supabase.from("subjects").update({ title: nextTitle.trim(), slug: cleanSlug, description: nextDescription.trim() || null }).eq("id", subject.id);
-    setMessage(error ? "Could not update subject: " + error.message : "Subject updated."); if (!error) await loadContent(); setBusy(false);
+    setMessage(error ? "Could not update subject: " + error.message : "Subject updated."); if (!error) await loadContent(subjectId); setBusy(false);
   }
   async function deleteSubject(subject: Subject) {
     if (!supabase || !window.confirm("Delete this subject and all its chapters, lectures and tests? This cannot be undone.")) return;
     setBusy(true); const { error } = await supabase.from("subjects").delete().eq("id", subject.id);
-    setMessage(error ? "Could not delete subject: " + error.message : "Subject deleted."); if (!error) { if (subjectId === subject.id) setSubjectId(""); await loadContent(); } setBusy(false);
+    setMessage(error ? "Could not delete subject: " + error.message : "Subject deleted."); if (!error) { if (subjectId === subject.id) setSubjectId(""); await loadContent(subjectId); } setBusy(false);
   }
   async function signOut() { if (supabase) await supabase.auth.signOut(); router.replace("/auth"); }
 
