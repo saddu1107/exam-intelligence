@@ -123,6 +123,43 @@ export default function AdminPage() {
     if (!error) await loadContent();
   }
 
+  async function editChapter(chapter: Chapter) {
+    if (!supabase) return;
+    const nextTitle = window.prompt("Chapter title", chapter.title);
+    if (nextTitle === null || !nextTitle.trim()) return;
+    const nextOrder = window.prompt("Display order", String(chapter.sort_order));
+    if (nextOrder === null) return;
+    setBusy(true);
+    const { error } = await supabase.from("chapters").update({ title: nextTitle.trim(), sort_order: Number(nextOrder) || chapter.sort_order }).eq("id", chapter.id);
+    setMessage(error ? "Could not update chapter: " + error.message : "Chapter updated.");
+    if (!error) await loadContent();
+    setBusy(false);
+  }
+  async function deleteChapter(chapter: Chapter) {
+    if (!supabase || !window.confirm("Delete this chapter and all lectures/tests under it? This cannot be undone.")) return;
+    setBusy(true); const { error } = await supabase.from("chapters").delete().eq("id", chapter.id);
+    setMessage(error ? "Could not delete chapter: " + error.message : "Chapter deleted.");
+    if (!error) await loadContent(); setBusy(false);
+  }
+  async function editLecture(lecture: Lecture) {
+    if (!supabase) return;
+    const nextTitle = window.prompt("Lecture title", lecture.title); if (nextTitle === null || !nextTitle.trim()) return;
+    const nextUrl = window.prompt("YouTube URL (blank removes it)", lecture.youtube_unlisted_url || ""); if (nextUrl === null) return;
+    const nextOrder = window.prompt("Display order", String(lecture.sort_order)); if (nextOrder === null) return;
+    setBusy(true); const { error } = await supabase.from("lectures").update({ title: nextTitle.trim(), youtube_unlisted_url: nextUrl.trim() || null, sort_order: Number(nextOrder) || lecture.sort_order }).eq("id", lecture.id);
+    setMessage(error ? "Could not update lecture: " + error.message : "Lecture updated."); if (!error) await loadContent(); setBusy(false);
+  }
+  async function replaceLecturePdf(lecture: Lecture, file: File | null) {
+    if (!supabase || !file) return; if (file.type !== "application/pdf" || file.size > 20 * 1024 * 1024) { setMessage("Choose a PDF up to 20 MB."); return; }
+    setBusy(true); const path = lecture.id + "/" + Date.now() + "-" + file.name.replace(/[^a-zA-Z0-9._-]/g, "-");
+    const { error: uploadError } = await supabase.storage.from("lecture-notes").upload(path, file, { contentType: "application/pdf", upsert: false });
+    if (uploadError) setMessage("PDF upload failed: " + uploadError.message); else { const { error } = await supabase.from("lectures").update({ notes_file_path: path }).eq("id", lecture.id); setMessage(error ? error.message : "Lecture PDF replaced successfully."); if (!error) await loadContent(); }
+    setBusy(false);
+  }
+  async function deleteLecture(lecture: Lecture) {
+    if (!supabase || !window.confirm("Delete this lecture and its tests? This cannot be undone.")) return;
+    setBusy(true); const { error } = await supabase.from("lectures").delete().eq("id", lecture.id); setMessage(error ? error.message : "Lecture deleted."); if (!error) await loadContent(); setBusy(false);
+  }
   async function signOut() { if (supabase) await supabase.auth.signOut(); router.replace("/auth"); }
 
   if (checking) return <main className="auth-shell"><section className="auth-card"><p>Checking admin access…</p></section></main>;
