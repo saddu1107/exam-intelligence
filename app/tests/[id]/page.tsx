@@ -120,7 +120,7 @@ export default function TestPage(){
  useEffect(()=>{answerRef.current=answer;},[answer]);
  useEffect(()=>{const update=()=>setFullscreen(Boolean(document.fullscreenElement));document.addEventListener("fullscreenchange",update);return()=>document.removeEventListener("fullscreenchange",update);},[]);
  async function toggleFullscreen(){try{if(!document.fullscreenElement){await document.documentElement.requestFullscreen();}else await document.exitFullscreen();}catch{setError("Full-screen mode is not supported by this browser.");}}
- async function clearResponse(){if(!supabase||!attempt||!q||savingAnswer)return;const {error}=await supabase.from("responses").delete().eq("attempt_id",attempt).eq("question_id",q.question_id);if(error){setError("Could not clear this response: "+error.message);return;}setSelected(null);setAnswers(old=>({...old,[q.question_id]:null}));setSaveStatus("Response cleared");}
+ async function clearResponse(){if(!supabase||!attempt||!q||savingAnswer)return;const {error}=await supabase.rpc("clear_lecture_test_answer",{p_attempt_id:attempt,p_question_id:q.question_id});if(error){setError("Could not clear this response: "+error.message);return;}setSelected(null);setAnswers(old=>({...old,[q.question_id]:null}));setSaveStatus("Response cleared");}
 
  if(loading)return <main style={{padding:30}}>Preparing your test…</main>;
  if(error&&!items.length)return <main style={{maxWidth:700,margin:"50px auto",padding:20}}><h1>Unable to start test</h1><p>{error}</p><Link href="/tests">Return to test library</Link></main>;
