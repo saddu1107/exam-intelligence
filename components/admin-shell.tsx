@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
-const items=[{href:"/admin",label:"Overview & Content",icon:"▦"},{href:"/admin/tests",label:"Question Bank & Tests",icon:"▤"}];
+const items=[{href:"/admin",label:"Overview & Content",icon:"▦"},{href:"/admin/exams",label:"SSC Syllabus Manager",icon:"◎"},{href:"/admin/tests",label:"Question Bank & Tests",icon:"▤"}];
 
 export default function AdminShell({children}:{children:React.ReactNode}){
  const pathname=usePathname();
