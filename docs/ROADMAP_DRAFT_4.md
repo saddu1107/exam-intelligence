@@ -24,13 +24,13 @@
 - [x] Shared admin shell matches the student navy/cyan visual system.
 - [x] Shared admin shell verifies authenticated user and the existing `is_admin` RPC before rendering admin routes.
 - [x] Existing admin page-level role checks retained as defense in depth.
-- [ ] Verify admin RLS policies for every write table and storage bucket.
+- [x] Add admin-only RLS policies for the Phase 5 `exams` and `exam_syllabus` management tables; broader admin RLS review remains queued.
 - [ ] Verify deployment preview and test admin/non-admin/anonymous access.
 - [ ] Review destructive actions and add safer archive/confirmation flows where needed.
 
 ### P1 — Exam and content foundation
 - [x] Define canonical exam identifiers and link syllabus items to existing subjects/chapters.
-- [x] Additive Phase 5 migration for `exams`, `exam_syllabus`, `student_exam_selections` and `student_syllabus_progress`; remaining Phase 6 tables stay queued.
+- [x] Additive Phase 5 migration for `exams`, `exam_syllabus`, `student_exam_selections` and `student_syllabus_progress`; remaining Phase 6 tables stay queued.\n- [x] Add admin SSC Syllabus Manager with bilingual fields, existing subject/chapter links, official-source URL, draft/verified status and verified-only publishing.
 - [ ] Preserve existing subjects, chapters, questions, tests, attempts and responses.
 - [ ] Add verified-source metadata and distinguish PYQs from original practice questions.
 - [ ] Add admin filters and bulk import validation for exam/year/topic/language.
