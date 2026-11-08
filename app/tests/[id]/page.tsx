@@ -19,7 +19,7 @@ export default function TestPage(){
  const [paused,setPaused]=useState(false);const [language,setLanguage]=useState<"en"|"hi">("en");
  const [fullscreen,setFullscreen]=useState(false);const [paletteOpen,setPaletteOpen]=useState(true);
  const saving=useRef(false);const pendingSave=useRef<Promise<boolean>|null>(null);const autosaveError=useRef(false);
- const finished=useRef(false);const answerRef=useRef<(value:number|null)=>Promise<void>>(async()=>{});
+ const finished=useRef(false);
  const duration=useMemo(()=>items.length*(items[0]?.seconds_per_question||20),[items]);
  const q=items[index];const translation=q?.translations?.[language];
  const displayedQuestion=translation?.question_text||q?.question_text||"";
@@ -59,7 +59,7 @@ export default function TestPage(){
    if(error){setError("Answer could not be saved: "+error.message);saving.current=false;return;}
   }
   saving.current=false;
-  if(index+1>=items.length){await finish();return;}
+  if(index+1>=items.length){if(window.confirm("Submit this test now?"))await finish();return;}
   const next=index+1;setIndex(next);setSelected(answers[items[next].question_id]??null);
   await supabase.rpc("save_lecture_test_position",{p_attempt_id:attempt,p_question_index:next,p_language:language});
  },[attempt,index,items,paused,answers,finish,language]);
@@ -116,8 +116,7 @@ export default function TestPage(){
   setLanguage(state?.preferred_language==="hi"?"hi":"en");setPaused(state?.status==="paused");setLoading(false);
  })();return()=>{live=false;};},[id,router]);
 
- useEffect(()=>{if(loading||result||paused||!items.length)return;const timer=window.setInterval(()=>setRemaining(t=>{if(t<=1){window.clearInterval(timer);void answerRef.current(null);return 0;}return t-1;}),1000);return()=>window.clearInterval(timer);},[loading,result,paused,items.length]);
- useEffect(()=>{answerRef.current=answer;},[answer]);
+ useEffect(()=>{if(loading||result||paused||!items.length)return;const timer=window.setInterval(()=>setRemaining(t=>{if(t<=1){window.clearInterval(timer);void finish();return 0;}return t-1;}),1000);return()=>window.clearInterval(timer);},[loading,result,paused,items.length,finish]);
  useEffect(()=>{const update=()=>setFullscreen(Boolean(document.fullscreenElement));document.addEventListener("fullscreenchange",update);return()=>document.removeEventListener("fullscreenchange",update);},[]);
  async function toggleFullscreen(){try{if(!document.fullscreenElement){await document.documentElement.requestFullscreen();}else await document.exitFullscreen();}catch{setError("Full-screen mode is not supported by this browser.");}}
  async function clearResponse(){if(!supabase||!attempt||!q||savingAnswer)return;const {error}=await supabase.rpc("clear_lecture_test_answer",{p_attempt_id:attempt,p_question_id:q.question_id});if(error){setError("Could not clear this response: "+error.message);return;}setSelected(null);setAnswers(old=>({...old,[q.question_id]:null}));setSaveStatus("Response cleared");}\n async function toggleReview(){if(!supabase||!attempt||!q)return;const next=!marked.includes(q.question_id);const {error}=await supabase.rpc("set_lecture_test_review_flag",{p_attempt_id:attempt,p_question_id:q.question_id,p_marked:next});if(error){setError("Could not update review flag: "+error.message);return;}setMarked(old=>next?[...old,q.question_id]:old.filter(x=>x!==q.question_id));}
