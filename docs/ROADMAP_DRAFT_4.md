@@ -31,14 +31,14 @@
 ### P1 — Exam and content foundation
 - [x] Define canonical exam identifiers and link syllabus items to existing subjects/chapters.
 - [x] Additive Phase 5 migration for `exams`, `exam_syllabus`, `student_exam_selections` and `student_syllabus_progress`; remaining Phase 6 tables stay queued.\n- [x] Add admin SSC Syllabus Manager with bilingual fields, existing subject/chapter links, official-source URL, draft/verified status and verified-only publishing.
-- [ ] Preserve existing subjects, chapters, questions, tests, attempts and responses.
-- [ ] Add verified-source metadata and distinguish PYQs from original practice questions.
+- [x] Preserve existing subjects, chapters, questions, tests, attempts and responses; Phase 6 schema is additive and legacy question linkage is optional.
+- [x] Add question-bank source metadata to distinguish PYQs from original questions; PYQs require an exam year.
 - [ ] Add admin filters and bulk import validation for exam/year/topic/language.
 
 ### P2 — Student experience
 - [ ] Smart dashboard.
 - [x] Seven-exam SSC Centre catalogue, target exam selection/date and syllabus progress UI (syllabus topics remain unpublished until verified).
-- [ ] Bilingual question bank and search.
+- [~] Bilingual question bank foundation: logical question entries, Hindi/English translations, exam/year/source metadata, tags, bookmarks and reports (database migration applied; admin/student UI and import workflow queued).
 - [ ] Sectional test engine and detailed analytics.
 - [ ] Bookmarks, incorrect-question revision and question reporting.
 
