@@ -4,7 +4,7 @@ import Link from "next/link";
 import {useParams,useRouter} from "next/navigation";
 import {supabase} from "@/lib/supabase";
 
-type Translation={question_text:string;options:string[];correct_option:number;explanation:string|null};
+type Translation={question_text:string;options:string[]};
 type Q={attempt_id:string;question_id:string;question_text:string;options:string[];sort_order:number;seconds_per_question:number;question_count:number;translations?:{en?:Translation;hi?:Translation}};
 type Result={score:number;correct_count:number;wrong_count:number;unanswered_count:number;time_taken_seconds:number};
 type SavedResponse={question_id:string;selected_option:number|null};
@@ -101,11 +101,11 @@ export default function TestPage(){
   const [{data:state},{data:responses},{data:bank}] = await Promise.all([
    supabase.from("attempts").select("started_at,paused_seconds_total,current_question_index,preferred_language,status,paused_at,reviewed_question_ids").eq("id",attemptId).single(),
    supabase.from("responses").select("question_id,selected_option").eq("attempt_id",attemptId),
-   supabase.from("question_bank_entries").select("legacy_question_id,question_bank_translations(language,question_text,options,correct_option,explanation)").in("legacy_question_id",rows.map(x=>x.question_id)).eq("status","published")
+   supabase.rpc("get_published_question_translations",{p_question_ids:rows.map(x=>x.question_id)})
   ]);
   if(!live)return;
   const byLegacy=new Map<string,{en?:Translation;hi?:Translation}>();
-  for(const entry of (bank||[]) as any[]){const pair:{en?:Translation;hi?:Translation}={};for(const tr of entry.question_bank_translations||[])pair[tr.language as "en"|"hi"]={question_text:tr.question_text,options:tr.options,correct_option:tr.correct_option,explanation:tr.explanation};if(entry.legacy_question_id)byLegacy.set(entry.legacy_question_id,pair);}
+  for(const tr of (bank||[]) as {legacy_question_id:string;language:"en"|"hi";question_text:string;options:string[]}[]){const pair=byLegacy.get(tr.legacy_question_id)||{};pair[tr.language]={question_text:tr.question_text,options:tr.options};byLegacy.set(tr.legacy_question_id,pair);}
   const enriched=rows.map(row=>({...row,translations:byLegacy.get(row.question_id)}));
   const saved:Record<string,number|null>={};for(const r of (responses||[]) as SavedResponse[])saved[r.question_id]=r.selected_option;
   setItems(enriched);setAttempt(attemptId);setAnswers(saved);setMarked((state?.reviewed_question_ids||[]) as string[]);
